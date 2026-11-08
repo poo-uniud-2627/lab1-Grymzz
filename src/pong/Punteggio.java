@@ -18,6 +18,8 @@ import java.util.List;
  * Ogni metodo ha il suo contratto, nel commento sopra: cosa pretende, cosa promette.
  * I test ufficiali (cartella test) controllano i contratti.
  */
+
+
 public class Punteggio {
     private final int puntiPerVincere;
     private final int scartoMinimo;
@@ -28,9 +30,66 @@ public class Punteggio {
     private final List<Lato> storia;
 
     /**
-     * Una partita nuova, 0 a 0, con la sua regola per vincere.
-     * Pretende: puntiPerVincere è almeno 1; scartoMinimo è almeno 1.
-     * Promette: una partita 0 a 0, non finita, senza vincitore e con la storia vuota.
+     * INVARIANTE:
+     * 1. puntiPerVincere e scartoMinimo sempre >= 1.
+     * 2. L'array punteggio e la lista storia non sono mai null.
+     * 3. La lista storia non contiene mai elementi null.
+     * 4. I punti nell'array punteggio corrispondono esattamente al numero di 
+     *    occorrenze di ciascun lato nella lista storia.
+     * 5. vincitore mai null se e solo se uno dei lati ha raggiunto
+     *    i puntiPerVincere e scartoMinimo.
+     * 6. A partita finita Storia non cambia.
+     */
+
+    boolean repOK() {
+
+        if (this.puntiPerVincere < 1 || this.scartoMinimo < 1) return false;
+        if (this.punteggio == null || this.storia == null) return false;
+        if (this.punteggio.length != Lato.values().length) return false;
+
+        int[] puntiRicalcolati = new int[Lato.values().length];
+        Lato vincitoreCalcolato = null;
+
+        for (Lato l : this.storia) {
+            if (l == null) return false; 
+            
+
+            if (vincitoreCalcolato != null) {
+                return false;
+            }
+
+            puntiRicalcolati[l.ordinal()]++; 
+
+            for (Lato lato : Lato.values()) {
+                int p = puntiRicalcolati[lato.ordinal()];
+                int hig = 0;
+                for (Lato nlato : Lato.values()) {
+                    if (lato != nlato && puntiRicalcolati[nlato.ordinal()] > hig) {
+                        hig = puntiRicalcolati[nlato.ordinal()];
+                    }
+                }
+
+                if (p >= this.puntiPerVincere && (p - hig) >= this.scartoMinimo) {
+                    vincitoreCalcolato = lato;
+                }
+            }
+        }
+        for (Lato l : Lato.values()) {
+            if (this.punteggio[l.ordinal()] != puntiRicalcolati[l.ordinal()]) {
+                return false;
+            }
+        }
+        if (this.vincitore != vincitoreCalcolato) return false;
+
+        return true;
+    }
+
+    /**
+     * **costruttore** `Punteggio(int puntiPerVincere, int scartoMinimo)` 
+     * Pretende: niente. 
+     * Promette: una partita 0 a 0, non finita, senza vincitore e con la storia vuota. 
+     * Lancia `IllegalArgumentException` se
+     * `puntiPerVincere` è minore di 1 o `scartoMinimo` è minore di 1.
      */
     public Punteggio(int puntiPerVincere, int scartoMinimo) {
         if (puntiPerVincere < 1) {
@@ -76,7 +135,7 @@ public class Punteggio {
 
     /**
      * Il lato chi ha fatto un punto.
-     * Pretende: chi non è null.
+     * Pretende: niente. Promette: come prima. Se `chi` è null lancia `IllegalArgumentException`, anche a partita finita, e non cambia niente.
      * Promette: se la partita non era finita, il lato chi ha un punto in più, l'altro lato non
      *           cambia e il punto si aggiunge in fondo alla storia; se con questo punto il lato chi
      *           vince (regola in cima alla classe), la partita è finita e il vincitore è chi.
@@ -98,7 +157,7 @@ public class Punteggio {
     }
 
     /**
-     * Pretende: chi non è null.
+     * Pretende: niente. Promette: come prima. Lancia `IllegalArgumentException` se `chi` è null.
      * Promette: i punti del lato chi. Non cambia niente.
      */
     public int getPunti(Lato chi) {
